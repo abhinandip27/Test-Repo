@@ -49,25 +49,13 @@ def calculate_derivative(signal, time):
 # --- 2. APG Fiducial Point Detection for a Single Beat ---
 
 def find_apg_fiducials_for_single_segment(apg_signal, beat_start_idx, beat_end_idx, fs):
-    """
-    Identifies 'a', 'b', 'c', 'd', 'e' waves within a single APG beat segment.
-    Returns the global indices of these points.
-    """
-    if beat_start_idx >= len(apg_signal) or beat_end_idx > len(apg_signal) or beat_start_idx >= beat_end_idx:
-        return None, None, None, None, None
 
     apg_beat_segment = apg_signal[beat_start_idx:beat_end_idx]
     
     a_loc, b_loc, c_loc, d_loc, e_loc = None, None, None, None, None
 
-    if len(apg_beat_segment) < 5: 
-        return None, None, None, None, None
-
-    apg_segment_range = np.max(apg_beat_segment) - np.min(apg_beat_segment)
-    if apg_segment_range <= 0.0001: # Handle very flat segments
-        return None, None, None, None, None
-
     beat_duration_sec = (beat_end_idx - beat_start_idx) / fs
+
     if beat_duration_sec == 0: 
         return None, None, None, None, None
 
@@ -155,11 +143,6 @@ if __name__ == "__main__":
     prominence_threshold_ppg = 0.1 * np.max(filtered_ppg) 
     
     ppg_systolic_peak_locs, _ = find_peaks(filtered_ppg, distance=min_peak_distance_ppg, prominence=prominence_threshold_ppg)
-    
-    # Ensure at least two systolic peaks exist to define the first beat
-    if len(ppg_systolic_peak_locs) < 2:
-        print("Not enough PPG peaks detected to identify the first beat.")
-        exit()
 
     # Define the first beat segment indices (global)
     first_beat_start_idx = ppg_systolic_peak_locs[0]
@@ -172,77 +155,3 @@ if __name__ == "__main__":
     # --- 5. Find APG Fiducials for the First Beat ---
     first_beat_a_loc, first_beat_b_loc, first_beat_c_loc, first_beat_d_loc, first_beat_e_loc = \
         find_apg_fiducials_for_single_segment(apg_signal, first_beat_start_idx, first_beat_end_idx, sampling_rate)
-
-    # --- 6. Prepare data for plotting ONLY the first beat APG ---
-    # Slice the APG signal and its time array to cover only the first beat
-    apg_first_beat_time = time[first_beat_start_idx:first_beat_end_idx+1]
-    apg_first_beat_signal = apg_signal[first_beat_start_idx:first_beat_end_idx+1]
-
-    plt.figure(figsize=(14, 10))
-
-    # Plot 1: Full Filtered PPG with First Beat Highlight
-    plt.subplot(2, 1, 1)
-    plt.plot(time, filtered_ppg, label='Filtered PPG (Full Signal)', color='blue')
-    plt.plot(time[ppg_systolic_peak_locs], filtered_ppg[ppg_systolic_peak_locs], 'ro', markersize=5, label='PPG Systolic Peaks')
-    
-    # Highlight the first beat segment
-    plt.axvspan(time[first_beat_start_idx], time[first_beat_end_idx], color='red', alpha=0.1, label='First Beat Segment')
-    
-    plt.title('Filtered PPG Signal with First Beat Highlighted')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Amplitude')
-    plt.legend()
-    plt.grid(True)
-
-    # Plot 2: APG Signal - First Beat Only with Fiducial Points
-    plt.subplot(2, 1, 2)
-    plt.plot(apg_first_beat_time, apg_first_beat_signal, label='APG Signal (First Beat Only)', color='purple', linewidth=1.5)
-    plt.axhline(0, color='black', linestyle='--', linewidth=0.7) # Zero line for reference
-
-    # Plot the detected APG fiducial points for the first beat
-    # Note: These indices are global, so we use `time[idx]` for correct x-axis plotting.
-    if first_beat_a_loc is not None: 
-        plt.plot(time[first_beat_a_loc], apg_signal[first_beat_a_loc], 'go', markersize=8, label='\'a\' wave')
-    if first_beat_b_loc is not None:
-        plt.plot(time[first_beat_b_loc], apg_signal[first_beat_b_loc], 'bo', markersize=8, label='\'b\' wave')
-    if first_beat_c_loc is not None:
-        plt.plot(time[first_beat_c_loc], apg_signal[first_beat_c_loc], 'co', markersize=8, label='\'c\' wave')
-    if first_beat_d_loc is not None:
-        plt.plot(time[first_beat_d_loc], apg_signal[first_beat_d_loc], 'mo', markersize=8, label='\'d\' wave')
-    if first_beat_e_loc is not None:
-        plt.plot(time[first_beat_e_loc], apg_signal[first_beat_e_loc], 'yo', markersize=8, label='\'e\' wave')
-            
-    plt.title('APG Signal with Fiducial Points (First Beat Only)')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Amplitude')
-    plt.legend()
-    plt.grid(True)
-
-    plt.tight_layout() 
-    plt.show() 
-
-    print("\n--- First Beat APG Fiducial Points Details ---")
-    if first_beat_a_loc is not None:
-        print(f"'a' wave: Index = {first_beat_a_loc}, Amplitude = {apg_signal[first_beat_a_loc]:.4f}")
-    else:
-        print("'a' wave: Not detected for the first beat.")
-    
-    if first_beat_b_loc is not None:
-        print(f"'b' wave: Index = {first_beat_b_loc}, Amplitude = {apg_signal[first_beat_b_loc]:.4f}")
-    else:
-        print("'b' wave: Not detected for the first beat.")
-    
-    if first_beat_c_loc is not None:
-        print(f"'c' wave: Index = {first_beat_c_loc}, Amplitude = {apg_signal[first_beat_c_loc]:.4f}")
-    else:
-        print("'c' wave: Not detected for the first beat.")
-        
-    if first_beat_d_loc is not None:
-        print(f"'d' wave: Index = {first_beat_d_loc}, Amplitude = {apg_signal[first_beat_d_loc]:.4f}")
-    else:
-        print("'d' wave: Not detected for the first beat.")
-        
-    if first_beat_e_loc is not None:
-        print(f"'e' wave: Index = {first_beat_e_loc}, Amplitude = {apg_signal[first_beat_e_loc]:.4f}")
-    else:
-        print("'e' wave: Not detected for the first beat.")
