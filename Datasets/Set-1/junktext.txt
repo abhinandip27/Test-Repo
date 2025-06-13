@@ -1,0 +1,25 @@
+        aging_index = (self.b - self.c - self.d - self.e) / self.a if self.a != 0 else 0
+        self.apg_features = {
+            "AI": aging_index,
+            "b/a": self.b/self.a, "c/a": self.c/self.a, "d/a": self.d/self.a, "e/a": self.e/self.a
+        }
+
+        
+        self.apg_features_queue = queue.Queue(featurebuffer_maxsize)
+
+        
+
+        if self.apg_features_queue.full():
+            self.apg_features_queue.get()
+        self.apg_features_queue.put(self.apg_features)
+
+
+         "APG ": self.apg_features,
+
+
+
+
+, "APG ": self.apg_features_queue
+
+        
+       
