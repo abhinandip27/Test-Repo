@@ -14,6 +14,9 @@ class PlethSignalProcessor:
         self.avgs = 0
         self.AI = 0
         self.hrv = 0
+        self.apg_feeatures=0
+        self.apg_calculated = False
+        self.apg_display=0
         self.hr_queue = queue.Queue(featurebuffer_maxsize)
         self.avgs_queue = queue.Queue(featurebuffer_maxsize)
         self.AI_queue = queue.Queue(featurebuffer_maxsize)
@@ -60,13 +63,18 @@ class PlethSignalProcessor:
         self.o_loc = peakloc_n[np.where(s[peakloc_n] < n_mu)[0]]
         self.n_loc = peakloc_n[np.where(s[peakloc_n] >= n_mu)[0]]
 
-        apg=calculate_derivative(calculate_derivative(s,t),t)
-        a,b,c,d,e=find_apg_fiducials(apg,self.s_loc[0],self.s_loc[1],self.signalbuffer.size)
-        aging_index = (b - c - d - e) / a if a != 0 else 0
-        apg_features = {
-            "AI": aging_index,
-            "b/a": b/a, "c/a": c/a, "d/a": d/a, "e/a": e/a
-        }
+        if not self.apg_calculated:
+            apg=calculate_derivative(calculate_derivative(s,t),t)
+            a,b,c,d=find_apg_fiducials(apg,self.s_loc[0],self.s_loc[1],self.signalbuffer.size)
+            e=apg[self.n_loc[0]]
+            aging_index = (b - c - d - e) / a if a != 0 else 0
+            self.apg_features = {
+                "AI": aging_index,
+                "b/a": b/a, "c/a": c/a, "d/a": d/a, "e/a": e/a
+            }
+            print(a,b,c,d,e)
+            self.apg_calculated = True
+            self.apg_display=[apg[self.s_loc[0]:self.s_loc[1]],t[self.s_loc[0]:self.s_loc[1]]]
 
 
     def find_hr(self):
@@ -171,12 +179,4 @@ def find_apg_fiducials(apg_signal, beat_start_idx, beat_end_idx, fs):
         else:
             d_loc = None
 
-        e_search_start_time = (current_anchor_time_sec + (0.05 * beat_duration_sec)) if d_loc is not None else ((c_loc / fs if c_loc is not None else (b_loc / fs if b_loc is not None else a_loc / fs)) + (0.15 * beat_duration_sec))
-        e_search_end_time = (a_loc / fs) + (0.7 * beat_duration_sec)
-        e_candidates = [p for p in all_pos_peaks_global_info if e_search_start_time <= p[0] / fs <= e_search_end_time]
-        if e_candidates:
-            e_loc = sorted(e_candidates, key=lambda x: (x[0], -x[1]))[0][0] 
-        else:
-            e_loc = None
-
-    return apg_signal[a_loc],apg_signal[ b_loc], apg_signal[c_loc], apg_signal[d_loc], apg_signal[e_loc]
+    return apg_signal[a_loc],apg_signal[ b_loc], apg_signal[c_loc], apg_signal[d_loc]

@@ -5,7 +5,7 @@ import streamlit as st
 import signal_buffer
 import pleth_signalprocessing
 
-signalbuffer = signal_buffer.SignalBuffer(signal_buffer.SIGNALSOURCE_FILE, 2550, {"Filename": "Datasets/Set-1/data_ppg.csv"})
+signalbuffer = signal_buffer.SignalBuffer(signal_buffer.SIGNALSOURCE_FILE, 3000, {"Filename": "Datasets/Set-1/data_ppg.csv"})
 signalproc = pleth_signalprocessing.PlethSignalProcessor(signalbuffer)
 
 st.set_page_config(page_title="Remote Monitoring - PPG Signals", page_icon="✅", layout="wide")
